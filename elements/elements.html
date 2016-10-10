@@ -26218,10 +26218,10 @@ of where they are in DOM.
                     <b>From this interface the Administrator shall:</b>
                     <ol>
                       <li>
-                        sda
+                        have the ability to create a Teacher user.
                       </li>
                       <li>
-                        sda
+                        have the ability to create a Student user.
                       </li>
                     </ol>               
                   </div>
@@ -26251,13 +26251,13 @@ of where they are in DOM.
                     <b>From this interface the Administrator shall:</b>
                     <ol>
                       <li>
-                        sda
+                        have the ability to view all users.
                       </li>
                       <li>
-                        sda
+                        have the ability to delete a user.
                       </li>
                       <li>
-                        sda
+                        have the ability to reset all user values to default.
                       </li>
                     </ol>               
                   </div>
@@ -26721,6 +26721,353 @@ of where they are in DOM.
 </dom-module>
 
 
+<dom-module id="project-item" assetpath="project-item/">
+  <template>
+    <style include="iron-flex iron-flex-alignment">
+      :host {
+        display: block;
+      }
+      .project-button {
+        background-color: #009688;
+        width: 170px;
+        color: #FFF;
+      }
+      .main-item {
+        margin: 10px;
+      }
+      .item {
+        margin: 5px;
+      }
+      .card {
+        width: 100%;
+      }
+      paper-button {
+        background-color: #00BCD4;
+        color: #fff;
+      }
+    </style>
+    
+    <paper-card elevation="1" class="card layout horizontal">
+      <div class="layout vertical flex">
+        <div class="red item">
+          [[project.name]]
+        </div>
+        <div class="layout horizontal item">
+          <div class="flex">
+            Status: <span>[[project.status]]</span>
+          </div>
+          <div class="flex layout horizontal end-justified">
+            Assigned at:&nbsp;<span>[[project.assigned_at]]</span>
+          </div>
+        </div>
+        <div class="layout horizontal center item">
+          <div class="flex">
+            Grade: <span>[[project.grade]]</span>
+          </div>
+          <div class="flex layout horizontal end-justified">
+            <iron-collapse id="upload_collapse_student">
+              <paper-button id="upload_button" on-tap="upload_project">Upload Project</paper-button>
+            </iron-collapse>
+            <iron-collapse id="uploaded_collapse_student">
+              <b>Uploaded on:</b>&nbsp;<span>[[project.uploaded_at]]</span>
+            </iron-collapse>
+            <iron-collapse id="grade_collapse_teacher">
+              <paper-button id="project_button" class="project-button" on-tap="grade_project" raised="">grade project</paper-button>
+            </iron-collapse>
+          </div>
+        </div>
+      </div>
+    </paper-card>
+
+    <iron-signals on-iron-signal-project-graded="project_graded"></iron-signals>
+
+    <iron-ajax id="update_ajax" url="{{url}}" handle-as="json" on-response="updated" on-error="handleError" last-error="{{ajax_error}}"></iron-ajax>
+  </template>
+  <script>var link = {
+	use: 'https://serene-falls-49722.herokuapp.com/main.php',
+	local: 'http://localhost/apache/ourvle/main.php',
+	heroku: 'https://serene-falls-49722.herokuapp.com/main.php'
+}</script>
+  <script>
+  (function() {
+    'use strict';
+
+    Polymer({
+      is: 'project-item',
+
+      properties: {
+        project: {
+          type: Object,
+          value: {},
+          notify: true,
+          observer: 'modify_display'
+        },
+        student: {
+          type: Boolean,
+          value: false,
+          notify: true
+        },
+        test: {
+          type: Number,
+          value: 0,
+          notify: true
+        },
+        url: {
+          type: String,
+          value: function() {
+            return link.use;
+          },
+          notify: true
+        }  
+      },
+      modify_display: function(newValue, oldValue)
+      {
+
+        if(this.student === true)
+        {
+          if(newValue.status == 'Incomplete')
+          {
+            this.$.upload_collapse_student.opened = true;
+            this.$.uploaded_collapse_student.opened = false;
+            this.$.grade_collapse_teacher.opened = false;
+          }
+          else
+          {
+            this.$.upload_collapse_student.opened = false;
+            this.$.uploaded_collapse_student.opened = true;
+            this.$.grade_collapse_teacher.opened = false;
+          }
+        }
+        else
+        {
+          if(newValue.status == 'completed')
+          {
+            this.$.upload_collapse_student.opened = false;
+            this.$.uploaded_collapse_student.opened = false;
+            this.$.grade_collapse_teacher.opened = true;
+
+            this.$.project_button.disabled = false;
+            this.$.project_button.style.backgroundColor = '#009688';
+          }
+          else if(newValue.status == 'graded')
+          {
+            this.$.upload_collapse_student.opened = false;
+            this.$.uploaded_collapse_student.opened = true;
+            this.$.grade_collapse_teacher.opened = false;
+
+            this.$.project_button.disabled = false;
+            this.$.project_button.style.backgroundColor = '#009688';
+          }
+          else
+          {
+            this.$.upload_collapse_student.opened = false;
+            this.$.uploaded_collapse_student.opened = false;
+            this.$.grade_collapse_teacher.opened = false;           
+          }
+        }
+        
+      },
+      grade_project: function()
+      {
+        var msg = {
+          action: 'grade-project',
+          obj: this.project
+        };
+
+        this.fire('iron-signal', {name: 'project-signal', data: msg});
+      },
+      upload_project: function() {
+        var send = {
+          action: 'upload-project',
+          student_id: this.test,
+          project_id: this.project.project_id
+        };
+
+        this.$.upload_button.disabled = true;
+
+        this.$.update_ajax.params = send;
+        this.$.update_ajax.generateRequest();
+      },
+      updated: function() {
+        var res = this.$.update_ajax.lastResponse;
+
+
+        if(res != null)
+        {
+          this.project = res;
+        }
+
+        this.$.upload_button.disabled = false;
+      },
+      project_graded: function(sender, detail, event) {
+        this.project = detail;
+      }
+    });
+  })();
+  </script>
+</dom-module>
+
+
+<dom-module id="quiz-item" assetpath="quiz-item/">
+  <template>
+    <style include="iron-flex iron-flex-alignment">
+      :host {
+        display: block;
+      }
+      .project-button {
+        background-color: #009688;
+        width: 170px;
+        color: #FFF;
+      }
+      .main-item {
+        margin: 10px;
+      }
+      .item {
+        margin: 5px;
+      }
+      .card {
+        width: 100%;
+      }
+      paper-button {
+        background-color: #00BCD4;
+        color: #fff;
+      }
+    </style>
+    
+    <paper-card elevation="1" class="card layout horizontal">
+      <div class="layout vertical flex">
+        <div class="red item">
+          [[quiz.name]]
+        </div>
+        <div class="layout horizontal item">
+          <div class="flex">
+            <b>Status:</b> <span>[[quiz.status]]</span>
+          </div>
+          <div class="flex layout horizontal end-justified">
+            <b>Assigned at:</b>&nbsp;<span>[[quiz.assigned_at]]</span>
+          </div>
+        </div>
+        <div class="layout horizontal center item">
+          <div class="flex">
+            <b>Grade:</b> <span>[[quiz.grade]]</span>
+          </div>
+          <div class="flex layout horizontal end-justified">
+            <iron-collapse id="complete_collapse_student" opened="">
+              <b>Completed at:</b>&nbsp;<span>[[quiz.completed_at]]</span>
+            </iron-collapse>
+            <iron-collapse id="incomplete_collapse_student">
+              <paper-button id="quiz_button" on-tap="take_quiz">Take Quiz</paper-button>
+            </iron-collapse>
+          </div>
+        </div>
+      </div>
+    </paper-card>
+
+
+    <iron-ajax id="update_ajax" url="{{url}}" handle-as="json" on-response="updated" on-error="handleError" last-error="{{ajax_error}}"></iron-ajax>
+
+    <iron-signals on-iron-signal-submit-quiz-grade="submit_quiz"></iron-signals>
+  </template>
+  <script>var link = {
+	use: 'https://serene-falls-49722.herokuapp.com/main.php',
+	local: 'http://localhost/apache/ourvle/main.php',
+	heroku: 'https://serene-falls-49722.herokuapp.com/main.php'
+}</script>
+  <script>
+  (function() {
+    'use strict';
+
+    Polymer({
+      is: 'quiz-item',
+
+      properties: {
+        quiz: {
+          type: Object,
+          value: {},
+          notify: true,
+          observer: 'modify_display'
+        },
+        student: {
+          type: Boolean,
+          value: false,
+          notify: true
+        },
+        test: {
+          type: Number,
+          value: 0,
+          notify: true
+        },
+        url: {
+          type: String,
+          value: function() {
+            return link.use;
+          },
+          notify: true
+        }
+      },
+      modify_display: function(newValue, oldValue)
+      {
+        if(this.student === true)
+        {
+          //check if quiz is done
+          if(this.quiz.status == 'Incomplete')
+          {
+            this.$.complete_collapse_student.opened = false;
+            this.$.incomplete_collapse_student.opened = true;
+          }
+          else
+          {
+            this.$.complete_collapse_student.opened = true;
+            this.$.incomplete_collapse_student.opened = false;
+          }
+        }
+        else
+        {
+          //teacher stuff
+        }
+      },
+      take_quiz: function() {
+
+        this.fire('iron-signal', {name: 'open-quiz-dialog', data: this.quiz.quiz_id});
+      },
+      submit_quiz: function(sender, detail, event) {
+        if(detail.quiz_id != this.quiz.quiz_id)
+        {
+          return;
+        }
+
+        var send = {
+          action: 'take-quiz',
+          student_id: this.test,
+          quiz_id: this.quiz.quiz_id,
+          grade: detail.grade
+        };
+
+        this.$.quiz_button.disabled = true;
+
+        this.$.update_ajax.params = send;
+        this.$.update_ajax.generateRequest();
+      },
+      updated: function() {
+        var res = this.$.update_ajax.lastResponse;
+
+        console.log(res);
+
+        if(res != 'quiz failed')
+        {
+          this.quiz = res;
+          this.fire('iron-signal', {name: 'add-student-points', data: null});
+        }
+
+        this.$.quiz_button.disabled = false;
+      }
+    });
+  })();
+  </script>
+</dom-module>
+
+
+
 <dom-module id="teacher-app" assetpath="teacher-app/">
   <template>
     <style include="iron-flex iron-flex-alignment">
@@ -26749,8 +27096,8 @@ of where they are in DOM.
         width: 300px;
       }
       .big {
-        --iron-icon-height: 50px;
-        --iron-icon-width: 50px;
+        --iron-icon-height: 70px;
+        --iron-icon-width: 70px;
       }
       .assignment-card {
         height: 500px;
@@ -26770,6 +27117,29 @@ of where they are in DOM.
       }
       #point_dialog {
         width: 300px;
+      }
+      .list {
+        background-color: #F5F5F5;
+      }
+      .card {
+        width: 100%;
+      }
+      #banner_img {
+        width: 100%;
+        height: auto;
+        --iron-image-width: 100%;
+      }
+      #friend_banner_img {
+        width: 100%;
+        height: auto;
+        --iron-image-width: 100%;
+      }
+      .achievment_img {
+        width: 100px;
+        height: 100px;
+      }
+      .banner_card { 
+        height: 250px;
       }
     </style>
     <section class="content layout vertical">
@@ -26801,22 +27171,32 @@ of where they are in DOM.
 
             <iron-collapse id="student_collapse">
               <paper-card class="main-item placeholder layout vertical">
-                <h4 class="main-item">Name Name</h4>
+                <h4 class="main-item">[[studentProfile.name]]</h4>
                 <div class="main-item layout horizontal">
                   <iron-icon icon="social:person" class="big red"></iron-icon>
                 
                   <div class="main-item layout vertical">
-                    <div>
-                      <b class="red">Uwi Points: </b>
-                      <span>[[student.points]]</span>
+                    <div class="layout horizontal center">
+                      <b class="red flex item">Uwi Points: </b>
+                      <span class="item">[[studentPoints]]</span>
                     </div>
-                    <div>
-                      <b class="red">Uwi Coins: </b>
-                      <span>[[student.coins]]</span>
+                    <div class="layout horizontal center">
+                      <b class="red flex item">Uwi Coins: </b>
+                      <span class="item">[[studentProfile.coins]]</span>
                     </div>
                   </div>
                 </div>
-                <paper-button class="main-item" raised="">view profile</paper-button>
+                <iron-collapse id="view_profile_collapse">
+                  <div class="layout horizontal">
+                    <paper-button class="red main-item flex" raised="" on-tap="view_student_profile">view profile</paper-button>
+                  </div>
+                </iron-collapse>
+                <iron-collapse id="view_projects_collapse">
+                  <div class="layout horizontal">
+                    <paper-button class="red main-item flex" on-tap="view_student_coursework" raised="">view coursework</paper-button>
+                  </div>
+                </iron-collapse>
+                
               </paper-card>
             </iron-collapse>
 
@@ -26826,6 +27206,8 @@ of where they are in DOM.
               </paper-card>
             </iron-collapse>
 
+            <iron-image class="main-item placeholder layout vertical" src="../images/backgrounds/Main-Menu.png"></iron-image>
+
             <paper-card class="main-item">
               <h4 class="main-item">NAVIGATION</h4>
               <paper-menu selected="{{page}}">
@@ -26834,6 +27216,12 @@ of where they are in DOM.
                 <paper-item class="red">Leaderboard</paper-item>
               </paper-menu>
             </paper-card>
+
+            <iron-image class="main-item placeholder layout vertical" src="../images/backgrounds/Administration.png"></iron-image>
+
+            <iron-image class="main-item placeholder layout vertical" src="../images/backgrounds/Search-UW.png"></iron-image>
+
+            <iron-image class="main-item placeholder layout vertical" src="../images/backgrounds/Activities.png"></iron-image>
           </div>
 
           <div class="center-div layout vertical flex">
@@ -26849,7 +27237,7 @@ of where they are in DOM.
                   </div>
                   
                   <p class="main-item">
-                    paragraph on course info
+                    The primary goal of Artificial Intelligence is to build computer systems to solve problems that difficult or impractical to solve by traditional computing methods, but easy for people. Because of this, emphasis will be placed on the simulation of human intelligence. General problem solving techniques will be studied for the greater part of the course.
                   </p>
                   <span class="main-item"></span>
                 </paper-card>
@@ -26893,13 +27281,11 @@ of where they are in DOM.
                   </div>
                   
                   <div class="layout vertical main-item">
-                    <iron-list items="[[students]]" as="item" selection-enabled="" selected-item="{{selected_student}}">
-                      <template>
-                        <paper-item class="item" on-tap="test">
-                          [[item.name]]
-                        </paper-item>
+                    <iron-selector selected="{{selectedStudent}}">
+                      <template is="dom-repeat" items="{{students}}">
+                        <paper-item>[[item.name]]</paper-item>
                       </template>
-                    </iron-list>
+                    </iron-selector>
                   </div>
                   <span class="main-item"></span>
                 </paper-card>
@@ -26916,21 +27302,26 @@ of where they are in DOM.
                   </div>
                   
                   <p class="main-item">
-                    paragraph on course info
+                    The primary goal of Artificial Intelligence is to build computer systems to solve problems that difficult or impractical to solve by traditional computing methods, but easy for people. Because of this, emphasis will be placed on the simulation of human intelligence. General problem solving techniques will be studied for the greater part of the course.
                   </p>
                   <span class="main-item"></span>
                 </paper-card>
 
                 <paper-card class="layout vertical main-item">
                   <div class="red main-item">
-                    Select a particular Student from the list
+                    Student Leaderboard
                   </div>
                   
                   <div class="layout vertical main-item">
-                    <iron-list items="[[students]]" as="item">
+                    <iron-list items="[[leaderboard]]" as="item">
                       <template>
-                        <paper-item class="item">
-                          [[item.name]]
+                        <paper-item class="item layout horizontal">
+                          <div class="flex">
+                            [[item.name]]
+                          </div>
+                          <div>
+                            [[item.points]]
+                          </div>
                         </paper-item>
                       </template>
                     </iron-list>
@@ -26965,33 +27356,11 @@ of where they are in DOM.
                     </div>
                   </div>
                   
-                  <div class="layout vertical main-item">
-                    <iron-list id="project_list" items="[[projects]]" as="item">
+                  <div class="list layout vertical main-item flex">
+                    <iron-list id="project_list" items="[[studentProfile.projects]]" as="item">
                       <template>
-                        <div>
-                        <paper-card elevation="1" class="project-item main-item layout horizontal">
-                          <div class="layout vertical flex">
-                            <div class="red item">
-                              [[item.name]]
-                            </div>
-                            <div class="layout horizontal item">
-                              <div class="flex">
-                                Status: <span>[[item.status]]</span>
-                              </div>
-                              <div class="flex layout horizontal end-justified">
-                                Assigned at:&nbsp;<span>[[item.date]]</span>
-                              </div>
-                            </div>
-                            <div class="layout horizontal center item">
-                              <div class="flex">
-                                Grade: <span>[[item.grade]]</span>
-                              </div>
-                              <div class="flex layout horizontal end-justified">
-                                <paper-button class="project-button" on-tap="grade_project" raised="">grade project</paper-button>
-                              </div>
-                            </div>
-                          </div>
-                        </paper-card>
+                        <div class="card layout horizontal">
+                          <project-item class="flex main-item" project="[[item]]"></project-item>
                         </div>
                       </template>
                     </iron-list>
@@ -27012,33 +27381,11 @@ of where they are in DOM.
                     </div>
                   </div>
                   
-                  <div class="layout vertical main-item">
-                    <iron-list items="[[quizzes]]" as="item">
+                  <div class="list layout vertical main-item flex">
+                    <iron-list items="[[studentProfile.quizzes]]" as="item">
                       <template>
-                        <div>
-                        <paper-card elevation="1" class="project-item main-item layout horizontal">
-                          <div class="layout vertical flex">
-                            <div class="red item">
-                              [[item.name]]
-                            </div>
-                            <div class="layout horizontal item">
-                              <div class="flex">
-                                <b>Status:</b> <span>[[item.status]]</span>
-                              </div>
-                              <div class="flex layout horizontal end-justified">
-                                <b>Assigned at:</b>&nbsp;<span>[[item.date]]</span>
-                              </div>
-                            </div>
-                            <div class="layout horizontal center item">
-                              <div class="flex">
-                                <b>Grade:</b> <span>[[item.grade]]</span>
-                              </div>
-                              <div class="flex layout horizontal end-justified">
-                                <b>Completed at:</b>&nbsp;<span>[[item.date]]</span>
-                              </div>
-                            </div>
-                          </div>
-                        </paper-card>
+                        <div class="card layout horizontal">
+                          <quiz-item class="flex main-item" quiz="[[item]]"></quiz-item>
                         </div>
                       </template>
                     </iron-list>
@@ -27049,13 +27396,71 @@ of where they are in DOM.
                   <span class="main-item"></span>
                 </paper-card>
               </section>
+
+              <section>
+                <paper-card class="banner_card layout vertical main-item">
+                  <div class="item red">
+                    UWI Banner
+                  </div>
+                  <div class="layout horizontal flex">
+                    <iron-image id="friend_banner_img" class="flex item" sizing="contain" src="../../images/banners/{{studentProfile.banner}}"></iron-image>
+                  </div>
+
+                </paper-card>
+
+                <paper-card class="layout vertical main-item">
+                  <div class="item red">
+                    UWI Achievements
+                  </div>
+                  
+                  <div class="item layout horizontal">
+                    <div class="item flex layout vertical center">
+                      <iron-image class="item achievment_img" sizing="contain" src="../images/achievments/A-Student.png"></iron-image>
+                      <div>A - Student x <b class="red">{{studentProfile.a_records}}</b></div>
+                    </div>
+                    <div class="item flex layout vertical center">
+                      <iron-image class="item achievment_img" sizing="contain" src="../images/achievments/B-Student.png"></iron-image>
+                      <div>B - Student x <b class="red">{{studentProfile.b_records}}</b></div>
+                    </div>
+                    <div class="item flex layout vertical center">
+                      <iron-image class="item achievment_img" sizing="contain" src="../images/achievments/Top-Student.png"></iron-image>
+                      <div>TOP - Student x <b class="red">0</b></div>
+                    </div>
+                  </div>
+
+                  <div class="item layout horizontal">
+                    <div class="item flex layout vertical center">
+                      <iron-image class="item achievment_img" sizing="contain" src="../images/achievments/Great-Progress.png"></iron-image>
+                      <div>Great Progress x <b class="red">0</b></div>
+                    </div>
+                    <div class="item flex layout vertical center">
+                      <iron-image class="item achievment_img" sizing="contain" src="../images/achievments/Good-Progress.png"></iron-image>
+                      <div>Good Progress x <b class="red">0</b></div>
+                    </div>
+                    <div class="item flex layout vertical center">
+                      <iron-image class="item achievment_img" sizing="contain" src="../images/achievments/helper.png"></iron-image>
+                      <div>Helper x <b class="red">0</b></div>
+                    </div>
+                  </div>
+                </paper-card>
+              </section>
             </iron-pages>
           </div>
 
           <div class="right-div layout vertical">
-            <span class="placeholder">
-              
-            </span>
+            <iron-image class="main-item placeholder layout vertical" src="../images/backgrounds/OURVLE-Tips.png"></iron-image>
+
+            <iron-image class="main-item placeholder layout vertical" src="../images/backgrounds/OURVLE-Tips-2.png"></iron-image>
+
+            <iron-image class="main-item placeholder layout vertical" src="../images/backgrounds/Twitter.png"></iron-image>
+
+            <iron-image class="main-item placeholder layout vertical" src="../images/backgrounds/Quiz.png"></iron-image>
+
+            <iron-image class="main-item placeholder layout vertical" src="../images/backgrounds/Latest-News.png"></iron-image>
+
+            <iron-image class="main-item placeholder layout vertical" src="../images/backgrounds/Calendar.png"></iron-image>
+
+            <iron-image class="main-item placeholder layout vertical" src="../images/backgrounds/Course-Categories.png"></iron-image>
           </div>
 
         </div>
@@ -27069,7 +27474,7 @@ of where they are in DOM.
       <div>
         <span class="red main-item layout horizontal center-justified">Please select project grade</span>
         
-        <paper-radio-group selected="A" class="layout vertical">
+        <paper-radio-group selected="A" class="layout vertical" id="project_grade_selection">
           <paper-radio-button name="A">A - 3 UWI points</paper-radio-button>
           <paper-radio-button name="B">B - 2 UWI points</paper-radio-button>
           <paper-radio-button name="C">C - 1 UWI point</paper-radio-button>
@@ -27123,8 +27528,22 @@ of where they are in DOM.
 
     <iron-signals on-iron-signal-user-profile="user_profile"></iron-signals>
 
+    <iron-signals on-iron-signal-project-signal="project_signal"></iron-signals>
+
 
     <iron-ajax id="search_ajax" url="{{url}}" handle-as="json" on-response="usersFound" on-error="handleError" last-error="{{ajax_error}}"></iron-ajax>
+
+    <iron-ajax id="leader_ajax" url="{{url}}" handle-as="json" on-response="leadersFound" on-error="handleError" last-error="{{ajax_error}}"></iron-ajax>
+
+    <iron-ajax id="create_project_ajax" url="{{url}}" handle-as="json" on-response="projectCreated" on-error="handleError" last-error="{{ajax_error}}"></iron-ajax>
+
+    <iron-ajax id="create_quiz_ajax" url="{{url}}" handle-as="json" on-response="quizCreated" on-error="handleError" last-error="{{ajax_error}}"></iron-ajax>
+
+    <iron-ajax id="grade_project_ajax" url="{{url}}" handle-as="json" on-response="projectGraded" on-error="handleError" last-error="{{ajax_error}}"></iron-ajax>
+
+    <iron-ajax id="add_point_ajax" url="{{url}}" handle-as="json" on-response="point_added" on-error="handleError" last-error="{{ajax_error}}"></iron-ajax>
+
+    <iron-ajax id="user_ajax" handle-as="json" on-response="userInfo"></iron-ajax>
   </template>
   <script>var link = {
 	use: 'https://serene-falls-49722.herokuapp.com/main.php',
@@ -27166,83 +27585,90 @@ of where they are in DOM.
           },
           notify: true
         },
-        selected_student: {
-          type: Object,
-          value: null,
-          notify: true,
-          observer: 'selected_studentChanged'
-        },
         students: {
+          type: Array,
+          value: [],
+          notify: true
+        },
+        leaderboard: {
           type: Array,
           value: [],
           notify: true
         },
         projects: {
           type: Array,
-          value: [
-            {
-              name: 'Project 1',
-              status: 'Complete',
-              grade: 'B',
-              date: '14/7/2016'
-            },
-            {
-              name: 'Project 2',
-              status: 'Complete',
-              grade: 'B',
-              date: '14/7/2016'
-            },
-            {
-              name: 'Project 3',
-              status: 'Complete',
-              grade: 'B',
-              date: '14/7/2016'
-            },
-            {
-              name: 'Project 4',
-              status: 'Complete',
-              grade: 'B',
-              date: '14/7/2016'
-            }
-          ],
+          value: [],
           notify: true
         },
         quizzes: {
           type: Array,
-          value: [
-            {
-              name: 'Quiz 1',
-              status: 'Complete',
-              grade: 'B',
-              date: '14/7/2016'
-            },
-            {
-              name: 'Quiz 2',
-              status: 'Complete',
-              grade: 'B',
-              date: '14/7/2016'
-            },
-            {
-              name: 'Quiz 3',
-              status: 'Complete',
-              grade: 'B',
-              date: '14/7/2016'
-            },
-            {
-              name: 'Quiz 4',
-              status: 'Complete',
-              grade: 'B',
-              date: '14/7/2016'
-            }
-          ],
+          value: [],
+          notify: true
+        },
+        selectedStudent: {
+          type: String,
+          value: null,
+          notify: true,
+          observer: 'selectedStudentChanged'
+        },
+        studentProfile: {
+          type: Object,
+          value: {},
           notify: true
         }
       },
-      test: function() {
-        console.log(this.selected_student);
+      project_signal: function(event, detail, sender)
+      {
+        if(detail.action == 'grade-project')
+        {
+          this.grade_project();
+          this.selected_project = detail.obj;
+        }
       },
-      selected_studentChanged: function(newValue, oldValue) {
-        console.log(newValue);
+      getUserInfo: function() {
+        var send = {
+          action: 'get-user-info',
+          id: this.studentProfile.id
+        }
+
+
+        this.$.loading.opened = true;
+
+        this.$.user_ajax.url = link.use;
+        this.$.user_ajax.params = send;
+        this.$.user_ajax.generateRequest();
+
+        console.log('requested user info');
+      },
+      userInfo: function() {
+        var res = this.$.user_ajax.lastResponse;
+
+        this.$.loading.opened = false;
+
+        if(res.hasOwnProperty("failure"))
+        {
+          console.log('no user info');
+        }
+        else
+        {
+          this.studentProfile = res;
+          this.studentPoints = res.points;
+
+          console.log('user info updated');
+        }
+      },
+      selectedStudentChanged: function(newValue, oldValue) {
+        if(newValue == null)
+        {
+          return;
+        }
+        else
+        {
+          this.page = 3;
+          this.selectedStudent = null;
+          this.studentProfile = this.students[newValue];
+          this.studentPoints = this.students[newValue].points;
+        }
       },
       student_search: function() {
         var send = {
@@ -27273,28 +27699,18 @@ of where they are in DOM.
       },
       leader_search: function() {
         var send = {
-          action: 'search-users',
-          order: points
+          action: 'leaderboard'
         }
 
         this.$.loading.opened = true;
 
-        this.$.lead.params = send;
-        this.$.lead.generateRequest();
+        this.$.leader_ajax.params = send;
+        this.$.leader_ajax.generateRequest();
       },
       leadersFound: function() {
         var res = this.$.leader_ajax.lastResponse;
-        var x = 0;
 
-        this.leaderBoard = [];
-
-        for(x in res)
-        {
-          if(res[x].type == 'student')
-          {
-            this.push('leaderBoard', res[x]);
-          }
-        }
+        this.leaderboard = res;
 
         this.$.loading.opened = false;
       },
@@ -27316,26 +27732,41 @@ of where they are in DOM.
         if(newValue == 3)
         {
           this.$.student_collapse.show();
+          this.$.view_profile_collapse.show();
+          this.$.view_projects_collapse.hide();
+          this.$.add_points_collapse.hide();
         }
         else if(newValue == 4)
         {
           this.$.student_collapse.show();
           this.$.add_points_collapse.show();
+          this.$.view_profile_collapse.hide();
+          this.$.view_projects_collapse.show();
         }
         else if(newValue == 1)
         {
           this.search_item = '';
           this.student_search();
+          this.$.student_collapse.hide();
+          this.$.add_points_collapse.hide();
+          this.$.view_profile_collapse.hide();
+          this.$.view_projects_collapse.hide();
         }
         else if(newValue == 2)
         {
           this.search_item = '';
           this.leader_search();
+          this.$.student_collapse.hide();
+          this.$.add_points_collapse.hide();
+          this.$.view_profile_collapse.hide();
+          this.$.view_projects_collapse.hide();
         }
         else
         {
           this.$.student_collapse.hide();
           this.$.add_points_collapse.hide();
+          this.$.view_profile_collapse.hide();
+          this.$.view_projects_collapse.hide();
         }
       },
       grade_project: function() {
@@ -27344,10 +27775,36 @@ of where they are in DOM.
       },
       submit_project_grade: function() {
         this.$.project_dialog.close();
+        this.$.loading.opened = true;
 
-        this.toastMessage = "Project Updated";
+        var grade = this.$.project_grade_selection.selected;
 
-        this.$.toast.open();
+        var send = {
+          action: 'grade-project',
+          student_id: this.studentProfile.id,
+          project_id: this.selected_project.project_id,
+          grade: this.$.project_grade_selection.selected
+        };
+
+
+        this.$.grade_project_ajax.params = send;
+        this.$.grade_project_ajax.generateRequest();  
+      },
+      projectGraded: function() {
+        var res = this.$.grade_project_ajax.lastResponse;
+
+        console.log(res);
+
+        this.$.loading.opened = false;
+
+        if(res != null)
+        {
+          this.toastMessage = "Project Graded";
+
+          this.$.toast.open();
+
+          this.fire('iron-signal', {name: 'project-graded', data: res});
+        }
       },
       create_project: function() {
         this.newProjectName = '';
@@ -27357,9 +27814,27 @@ of where they are in DOM.
       create_project_confirmed: function() {
         this.$.create_project_dialog.close();
 
+        var send = {
+          action: 'create-project',
+          project_name: this.newProjectName,
+          student_id: this.studentProfile.id
+        }
+
+        this.$.loading.opened = true;
+
+        this.$.create_project_ajax.params = send;
+        this.$.create_project_ajax.generateRequest();
+      },
+      projectCreated: function() {
+        var res = this.$.create_project_ajax.lastResponse;
+
+        this.$.loading.opened = false;
+
         this.toastMessage = "Project Created";
 
         this.$.toast.open();
+
+        this.getUserInfo();
       },
       create_quiz: function() {
         this.$.create_quiz_dialog.open();
@@ -27368,9 +27843,27 @@ of where they are in DOM.
       create_quiz_confirmed: function() {
         this.$.create_quiz_dialog.close();
 
+        var send = {
+          action: 'create-quiz',
+          quiz_name: this.newQuizName,
+          student_id: this.studentProfile.id
+        }
+
+        this.$.loading.opened = true;
+
+        this.$.create_quiz_ajax.params = send;
+        this.$.create_quiz_ajax.generateRequest();
+      },
+      quizCreated: function() {
+        var res = this.$.create_quiz_ajax.lastResponse;
+
+        this.$.loading.opened = false;
+
         this.toastMessage = "Quiz Created";
 
         this.$.toast.open();
+
+        this.getUserInfo();
       },
       add_point: function() {
         this.$.point_dialog.open();
@@ -27379,7 +27872,22 @@ of where they are in DOM.
       points_confirmed: function() {
         this.$.point_dialog.close();
 
+        var send = {
+          action: 'add-point',
+          student_id: this.studentProfile.id
+        }
+
+        this.studentPoints++;
+
+        this.$.loading.opened = true;
+
+        this.$.add_point_ajax.params = send;
+        this.$.add_point_ajax.generateRequest();
+      },
+      point_added: function() {
         this.toastMessage = "Point Added";
+
+        this.$.loading.opened = false;
 
         this.$.toast.open();
       },
@@ -27393,11 +27901,18 @@ of where they are in DOM.
         this.$.logout_menu.selected = null;
 
         this.fire('iron-signal', {name: 'logout', data: null});
+      },
+      view_student_profile: function() {
+        this.page = 4;
+      },
+      view_student_coursework: function() {
+        this.page = 3;
       }
     });
   })();
   </script>
 </dom-module>
+
 
 
 <dom-module id="student-app" assetpath="student-app/">
@@ -27425,7 +27940,7 @@ of where they are in DOM.
         color: #0097A7;
       }
       .placeholder {
-        width: 300px;
+        width: 250px;
       }
       .big {
         --iron-icon-height: 50px;
@@ -27449,13 +27964,57 @@ of where they are in DOM.
       #point_dialog {
         width: 300px;
       }
+      .list {
+        background-color: #F5F5F5;
+      }
+      .card {
+        width: 100%;
+      }
+      #banner_img {
+        width: 100%;
+        height: auto;
+        --iron-image-width: 100%;
+      }
+      #friend_banner_img {
+        width: 100%;
+        height: auto;
+        --iron-image-width: 100%;
+      }
+      .achievment_img {
+        width: 100px;
+        height: 100px;
+      }
+      .banner_card { 
+        height: 250px;
+      }
+      .banner_img_option {
+        height: 100px;
+        width: auto;
+      }
+      #banner_selector {
+        width: 300px;
+        height: 500px;
+        overflow: auto;
+      }
+      .disabled_img {
+        opacity: 0.4;
+        filter: alpha(opacity=40);
+      }
     </style>
     <section class="content layout vertical">
       <paper-header-panel class="flex" mode="seamed">
         <paper-toolbar class="paper-header">
           <div>OurVLE Gamified</div>
           <span class="flex"></span>
-          <div class="main-item"><span>Name Name</span> (Student)</div>
+          <div class="main-item">
+            <span>{{profile.name}}</span> (Student)
+            <paper-menu-button>
+              <paper-icon-button icon="arrow-drop-down" class="dropdown-trigger"></paper-icon-button>
+              <paper-menu id="logout_menu" class="dropdown-content">
+                <paper-item on-tap="logout">logout</paper-item>
+              </paper-menu>
+            </paper-menu-button>
+          </div>
         </paper-toolbar>
 
         <div class="layout horizontal">
@@ -27471,23 +28030,24 @@ of where they are in DOM.
 
 
             <paper-card class="main-item placeholder layout vertical">
-              <h4 class="main-item">Name Name</h4>
+              <h4 class="main-item">{{profile.name}}</h4>
               <div class="main-item layout horizontal">
                 <iron-icon icon="social:person" class="big red"></iron-icon>
               
                 <div class="main-item layout vertical">
                   <div>
                     <b class="red">Uwi Points: </b>
-                    <span>[[student.points]]</span>
+                    <span>{{profile.points}}</span>
                   </div>
                   <div>
                     <b class="red">Uwi Coins: </b>
-                    <span>[[student.coins]]</span>
+                    <span>{{profile.coins}}</span>
                   </div>
                 </div>
               </div>
-              <paper-button class="main-item" raised="">view profile</paper-button>
             </paper-card>
+
+            <iron-image class="main-item placeholder layout vertical" src="../images/backgrounds/Main-Menu.png"></iron-image>
 
             <paper-card class="main-item">
               <h4 class="main-item">NAVIGATION</h4>
@@ -27498,12 +28058,64 @@ of where they are in DOM.
                 <paper-item class="red">Leaderboard</paper-item>
               </paper-menu>
             </paper-card>
+
+            <iron-image class="main-item placeholder layout vertical" src="../images/backgrounds/Administration.png"></iron-image>
+
+            <iron-image class="main-item placeholder layout vertical" src="../images/backgrounds/Search-UW.png"></iron-image>
+
+            <iron-image class="main-item placeholder layout vertical" src="../images/backgrounds/Activities.png"></iron-image>
           </div>
 
           <div class="center-div layout vertical flex">
             <iron-pages selected="{{page}}">
-              <section>
-                
+              <section class="fit">
+                <paper-card class="banner_card layout vertical main-item">
+                  <div class="item red">
+                    UWI Banner
+                  </div>
+                  <div class="layout horizontal flex">
+                    <iron-image id="banner_img" class="flex item" sizing="contain" src="../../images/banners/{{profile.banner}}"></iron-image>
+                  </div>
+                  <div class="layout horizontal end-justified">
+                    <paper-button raised="" class="item project-button" on-tap="show_banners">Change Banner</paper-button>
+                  </div>
+                </paper-card>
+
+                <paper-card class="layout vertical main-item">
+                  <div class="item red">
+                    UWI Achievements
+                  </div>
+                  
+                  <div class="item layout horizontal">
+                    <div class="item flex layout vertical center">
+                      <iron-image class="item achievment_img" sizing="contain" src="../images/achievments/A-Student.png"></iron-image>
+                      <div>A - Student x <b class="red">{{profile.a_records}}</b></div>
+                    </div>
+                    <div class="item flex layout vertical center">
+                      <iron-image class="item achievment_img" sizing="contain" src="../images/achievments/B-Student.png"></iron-image>
+                      <div>B - Student x <b class="red">{{profile.b_records}}</b></div>
+                    </div>
+                    <div class="item flex layout vertical center">
+                      <iron-image class="item achievment_img" sizing="contain" src="../images/achievments/Top-Student.png"></iron-image>
+                      <div>TOP - Student x <b class="red">0</b></div>
+                    </div>
+                  </div>
+
+                  <div class="item layout horizontal">
+                    <div class="item flex layout vertical center">
+                      <iron-image class="item achievment_img" sizing="contain" src="../images/achievments/Great-Progress.png"></iron-image>
+                      <div>Great Progress x <b class="red">0</b></div>
+                    </div>
+                    <div class="item flex layout vertical center">
+                      <iron-image class="item achievment_img" sizing="contain" src="../images/achievments/Good-Progress.png"></iron-image>
+                      <div>Good Progress x <b class="red">0</b></div>
+                    </div>
+                    <div class="item flex layout vertical center">
+                      <iron-image class="item achievment_img" sizing="contain" src="../images/achievments/helper.png"></iron-image>
+                      <div>Helper x <b class="red">0</b></div>
+                    </div>
+                  </div>
+                </paper-card>
               </section>
 
               <section>
@@ -27517,7 +28129,7 @@ of where they are in DOM.
                   </div>
                   
                   <p class="main-item">
-                    paragraph on course info
+                    The primary goal of Artificial Intelligence is to build computer systems to solve problems that difficult or impractical to solve by traditional computing methods, but easy for people. Because of this, emphasis will be placed on the simulation of human intelligence. General problem solving techniques will be studied for the greater part of the course.
                   </p>
                   <span class="main-item"></span>
                 </paper-card>
@@ -27532,33 +28144,11 @@ of where they are in DOM.
                     </div>
                   </div>
                   
-                  <div class="layout vertical main-item">
-                    <iron-list id="project_list" items="[[projects]]" as="item">
+                  <div class="list layout vertical main-item flex">
+                    <iron-list id="project_list" items="[[profile.projects]]" as="item">
                       <template>
-                        <div>
-                        <paper-card elevation="1" class="project-item main-item layout horizontal">
-                          <div class="layout vertical flex">
-                            <div class="red item">
-                              [[item.name]]
-                            </div>
-                            <div class="layout horizontal item">
-                              <div class="flex">
-                                Status: <span>[[item.status]]</span>
-                              </div>
-                              <div class="flex layout horizontal end-justified">
-                                Assigned at:&nbsp;<span>[[item.date]]</span>
-                              </div>
-                            </div>
-                            <div class="layout horizontal center item">
-                              <div class="flex">
-                                Grade: <span>[[item.grade]]</span>
-                              </div>
-                              <div class="flex layout horizontal end-justified">
-                                <paper-button class="project-button" on-tap="grade_project" raised=""><iron-icon icon=""></iron-icon>Upload project</paper-button>
-                              </div>
-                            </div>
-                          </div>
-                        </paper-card>
+                        <div class="card layout horizontal">
+                          <project-item class="flex main-item" project="[[item]]" student="true" test="[[profile.id]]"></project-item>
                         </div>
                       </template>
                     </iron-list>
@@ -27576,34 +28166,11 @@ of where they are in DOM.
                     </div>
                   </div>
                   
-                  <div class="layout vertical main-item">
-                    <iron-list items="[[quizzes]]" as="item">
+                  <div class="list layout vertical main-item flex">
+                    <iron-list items="[[profile.quizzes]]" as="item">
                       <template>
-                        <div>
-                        <paper-card elevation="1" class="project-item main-item layout horizontal">
-                          <div class="layout vertical flex">
-                            <div class="red item">
-                              [[item.name]]
-                            </div>
-                            <div class="layout horizontal item">
-                              <div class="flex">
-                                <b>Status:</b> <span>[[item.status]]</span>
-                              </div>
-                              <div class="flex layout horizontal end-justified">
-                                <b>Assigned at:</b>&nbsp;<span>[[item.date]]</span>
-                              </div>
-                            </div>
-                            <div class="layout horizontal center item">
-                              <div class="flex">
-                                <b>Grade:</b> <span>[[item.grade]]</span>
-                              </div>
-                              <div class="flex layout horizontal end-justified">
-                                <paper-button class="quiz-button" on-tap="take_quiz" raised=""><iron-icon icon=""></iron-icon>take quiz</paper-button>
-                              </div>
-                            </div>
-                          </div>
-                        </paper-card>
-                        </div>
+                          <quiz-item class="flex main-item" quiz="[[item]]" student="true" test="[[profile.id]]"></quiz-item>
+                        
                       </template>
                     </iron-list>
                   </div>
@@ -27622,11 +28189,11 @@ of where they are in DOM.
                   </div>
                   
                   <div class="main-item layout horizontal center-justified center">
-                    <paper-input class="main-item" label="Student Search" floating-label="">
+                    <paper-input class="main-item" value="{{search_item}}" label="Student Search" floating-label="">
                       <iron-icon icon="search" prefix=""></iron-icon>
                     </paper-input>
                     <div>
-                      <paper-button class="main-item" raised="">search</paper-button>
+                      <paper-button class="main-item" on-tap="student_search" raised="">search</paper-button>
                     </div>
                   </div>
                   <span class="main-item"></span>
@@ -27638,13 +28205,11 @@ of where they are in DOM.
                   </div>
                   
                   <div class="layout vertical main-item">
-                    <iron-list items="[[students]]" as="item">
-                      <template>
-                        <paper-item class="item">
-                          [[item.name]]
-                        </paper-item>
+                    <iron-selector selected="{{selectedStudent}}">
+                      <template is="dom-repeat" items="{{students}}">
+                        <paper-item>[[item.name]]</paper-item>
                       </template>
-                    </iron-list>
+                    </iron-selector>
                   </div>
                   <span class="main-item"></span>
                 </paper-card>
@@ -27661,21 +28226,26 @@ of where they are in DOM.
                   </div>
                   
                   <p class="main-item">
-                    paragraph on course info
+                    The primary goal of Artificial Intelligence is to build computer systems to solve problems that difficult or impractical to solve by traditional computing methods, but easy for people. Because of this, emphasis will be placed on the simulation of human intelligence. General problem solving techniques will be studied for the greater part of the course.
                   </p>
                   <span class="main-item"></span>
                 </paper-card>
 
                 <paper-card class="layout vertical main-item">
                   <div class="red main-item">
-                    Select a particular Student from the list
+                    Leaderboard
                   </div>
                   
                   <div class="layout vertical main-item">
-                    <iron-list items="[[students]]" as="item">
+                    <iron-list items="[[leaderboard]]" as="item">
                       <template>
-                        <paper-item class="item">
-                          [[item.name]]
+                        <paper-item class="item layout horizontal">
+                          <div class="flex">
+                            [[item.name]]
+                          </div>
+                          <div>
+                            [[item.points]]
+                          </div>
                         </paper-item>
                       </template>
                     </iron-list>
@@ -27684,14 +28254,87 @@ of where they are in DOM.
                 </paper-card>
               </section>
 
+              <section>
+                <paper-card class="banner_card layout vertical main-item">
+
+                  <div class="layout horizontal flex">
+                    <iron-image id="friend_banner_img" class="flex item" sizing="contain" src="../../images/banners/{{studentProfile.banner}}"></iron-image>
+                  </div>
+
+                  
+                  <div class="main-item layout horizontal">
+                    <iron-icon icon="social:person" class="big red"></iron-icon>
+                  
+                    <div class="main-item layout vertical">
+                      <div>
+                        <b class="red">Uwi Points: </b>
+                        <span>{{studentProfile.points}}</span>
+                      </div>
+                      <div>
+                        <b class="red">Uwi Coins: </b>
+                        <span>{{studentProfile.coins}}</span>
+                      </div>
+                    </div>
+                  </div>
+                  <b class="main-item">{{studentProfile.name}}</b>
+
+                </paper-card>
+
+                <paper-card class="layout vertical main-item">
+                  <div class="item red">
+                    UWI Achievements
+                  </div>
+                  
+                  <div class="item layout horizontal">
+                    <div class="item flex layout vertical center">
+                      <iron-image class="item achievment_img" sizing="contain" src="../images/achievments/A-Student.png"></iron-image>
+                      <div>A - Student x <b class="red">{{studentProfile.a_records}}</b></div>
+                    </div>
+                    <div class="item flex layout vertical center">
+                      <iron-image class="item achievment_img" sizing="contain" src="../images/achievments/B-Student.png"></iron-image>
+                      <div>B - Student x <b class="red">{{studentProfile.b_records}}</b></div>
+                    </div>
+                    <div class="item flex layout vertical center">
+                      <iron-image class="item achievment_img" sizing="contain" src="../images/achievments/Top-Student.png"></iron-image>
+                      <div>TOP - Student x <b class="red">0</b></div>
+                    </div>
+                  </div>
+
+                  <div class="item layout horizontal">
+                    <div class="item flex layout vertical center">
+                      <iron-image class="item achievment_img" sizing="contain" src="../images/achievments/Great-Progress.png"></iron-image>
+                      <div>Great Progress x <b class="red">0</b></div>
+                    </div>
+                    <div class="item flex layout vertical center">
+                      <iron-image class="item achievment_img" sizing="contain" src="../images/achievments/Good-Progress.png"></iron-image>
+                      <div>Good Progress x <b class="red">0</b></div>
+                    </div>
+                    <div class="item flex layout vertical center">
+                      <iron-image class="item achievment_img" sizing="contain" src="../images/achievments/helper.png"></iron-image>
+                      <div>Helper x <b class="red">0</b></div>
+                    </div>
+                  </div>
+                </paper-card>
+              </section>
+
               
             </iron-pages>
           </div>
 
           <div class="right-div layout vertical">
-            <span class="placeholder">
-              
-            </span>
+            <iron-image class="main-item placeholder layout vertical" src="../images/backgrounds/OURVLE-Tips.png"></iron-image>
+
+            <iron-image class="main-item placeholder layout vertical" src="../images/backgrounds/OURVLE-Tips-2.png"></iron-image>
+
+            <iron-image class="main-item placeholder layout vertical" src="../images/backgrounds/Twitter.png"></iron-image>
+
+            <iron-image class="main-item placeholder layout vertical" src="../images/backgrounds/Quiz.png"></iron-image>
+
+            <iron-image class="main-item placeholder layout vertical" src="../images/backgrounds/Latest-News.png"></iron-image>
+
+            <iron-image class="main-item placeholder layout vertical" src="../images/backgrounds/Calendar.png"></iron-image>
+
+            <iron-image class="main-item placeholder layout vertical" src="../images/backgrounds/Course-Categories.png"></iron-image>
           </div>
 
         </div>
@@ -27707,7 +28350,7 @@ of where they are in DOM.
         
         <div class="item layout vertical">
           <span class="layout horizontal">ROM BIOS are the first computer instructions available on boot up.</span>
-          <paper-radio-group selected="true" class="layout horizontal">
+          <paper-radio-group selected="{{ans1}}" class="layout horizontal">
             <paper-radio-button name="true">True</paper-radio-button>
             <paper-radio-button name="false">False</paper-radio-button>
           </paper-radio-group>
@@ -27715,7 +28358,7 @@ of where they are in DOM.
 
         <div class="item layout vertical">
           <span class="layout horizontal">PROLOG is the computer language used for artificial intelligence.</span>
-          <paper-radio-group selected="true" class="layout horizontal">
+          <paper-radio-group selected="{{ans2}}" class="layout horizontal">
             <paper-radio-button name="true">True</paper-radio-button>
             <paper-radio-button name="false">False</paper-radio-button>
           </paper-radio-group>
@@ -27723,7 +28366,7 @@ of where they are in DOM.
 
         <div class="item layout vertical">
           <span class="layout horizontal">The binary system uses base 2.</span>
-          <paper-radio-group selected="true" class="layout horizontal">
+          <paper-radio-group selected="{{ans3}}" class="layout horizontal">
             <paper-radio-button name="true">True</paper-radio-button>
             <paper-radio-button name="false">False</paper-radio-button>
           </paper-radio-group>
@@ -27731,7 +28374,7 @@ of where they are in DOM.
 
         <div class="item layout vertical">
           <span class="layout horizontal">CPU stands for Central Processing Unit.</span>
-          <paper-radio-group selected="true" class="layout horizontal">
+          <paper-radio-group selected="{{ans4}}" class="layout horizontal">
             <paper-radio-button name="true">True</paper-radio-button>
             <paper-radio-button name="false">False</paper-radio-button>
           </paper-radio-group>
@@ -27739,7 +28382,7 @@ of where they are in DOM.
         
       </div>
       <div class="main-item layout horizontal center-justified">
-        <paper-button raised="" class="main-item" on-tap="submit_quiz">Submit</paper-button>
+        <paper-button raised="" class="quiz-button main-item" on-tap="submit_quiz">Submit</paper-button>
         <paper-button raised="" class="main-item" on-tap="close_dialog">cancel</paper-button>
       </div>
     </paper-dialog>
@@ -27751,7 +28394,7 @@ of where they are in DOM.
         <paper-input label="Project Name" floating-label="" value="{{newProjectName}}"></paper-input>
       </div>
       <div class="main-item layout horizontal center-justified">
-        <paper-button raised="" class="main-item" on-tap="create_project_confirmed">submit</paper-button>
+        <paper-button raised="" class="quiz-button main-item" on-tap="create_project_confirmed">submit</paper-button>
         <paper-button raised="" class="main-item" on-tap="close_dialog">cancel</paper-button>
       </div>
     </paper-dialog>
@@ -27763,7 +28406,7 @@ of where they are in DOM.
         <paper-input label="Project Name" floating-label="" value="{{newQuizName}}"></paper-input>
       </div>
       <div class="main-item layout horizontal center-justified">
-        <paper-button raised="" class="main-item" on-tap="create_quiz_confirmed">submit</paper-button>
+        <paper-button raised="" class="quiz-button main-item" on-tap="create_quiz_confirmed">submit</paper-button>
         <paper-button raised="" class="main-item" on-tap="close_dialog">cancel</paper-button>
       </div>
     </paper-dialog>
@@ -27773,10 +28416,60 @@ of where they are in DOM.
       <span class="main-item">UWI points should only be awarded for excellent behaviour and performance.</span>
       
       <div class="main-item layout horizontal center-justified">
-        <paper-button raised="" class="main-item" on-tap="points_confirmed">confirm</paper-button>
+        <paper-button raised="" class="quiz-button main-item" on-tap="points_confirmed">confirm</paper-button>
         <paper-button raised="" class="main-item" on-tap="close_dialog">cancel</paper-button>
       </div>
     </paper-dialog>
+
+    <paper-dialog id="banner_dialog" class="layout vertical" modal="">
+      <span class="red main-item layout horizontal center-justified">Select Banner</span>
+
+      <paper-menu id="banner_selector" attr-for-selected="name" selected="{{selected_banner}}">
+        <paper-item name="Mona-Red.png" class="layout horizontal flex">
+          <iron-image class="flex item banner_img_option" sizing="contain" src="../images/banners/Mona-Red.png"></iron-image>
+        </paper-item>
+        <paper-item name="Alumni.png" disabled="" class="disabled_img layout horizontal flex">
+          <iron-image class="flex item banner_img_option" sizing="contain" src="../images/banners/Alumni.png"></iron-image>
+        </paper-item>
+        <paper-item name="Excellent.png" class="layout horizontal flex">
+          <iron-image class="flex item banner_img_option" sizing="contain" src="../images/banners/Excellent.png"></iron-image>
+        </paper-item>
+        <paper-item name="Jamaica.png" class="layout horizontal flex">
+          <iron-image class="flex item banner_img_option" sizing="contain" src="../images/banners/Jamaica.png"></iron-image>
+        </paper-item>
+        <paper-item name="Leader.png" disabled="" class="disabled_img layout horizontal flex">
+          <iron-image class="flex item banner_img_option" sizing="contain" src="../images/banners/Leader.png"></iron-image>
+        </paper-item>
+        <paper-item name="One-UWI.png" disabled="" class="disabled_img layout horizontal flex">
+          <iron-image class="flex item banner_img_option" sizing="contain" src="../images/banners/One-UWI.png"></iron-image>
+        </paper-item>
+        <paper-item name="Pelican-Pride.png" class="layout horizontal flex">
+          <iron-image class="flex item banner_img_option" sizing="contain" src="../images/banners/Pelican-Pride.png"></iron-image>
+        </paper-item>
+        <paper-item name="Smart.png" disabled="" class="disabled_img layout horizontal flex">
+          <iron-image class="flex item banner_img_option" sizing="contain" src="../images/banners/Smart.png"></iron-image>
+        </paper-item>
+      </paper-menu>
+      
+      <div class="main-item layout horizontal center-justified">
+        <paper-button raised="" class="quiz-button main-item" on-tap="banner_confirmed">confirm</paper-button>
+        <paper-button raised="" class="main-item" on-tap="close_dialog">cancel</paper-button>
+      </div>
+    </paper-dialog>
+
+    <paper-dialog id="loading" modal="">
+      <paper-spinner active=""></paper-spinner>
+    </paper-dialog>
+
+    <iron-ajax id="update_banner_ajax" url="{{url}}" handle-as="json" on-response="banner_updated" on-error="handleError" last-error="{{ajax_error}}"></iron-ajax>
+
+    <iron-ajax id="search_ajax" url="{{url}}" handle-as="json" on-response="usersFound" on-error="handleError" last-error="{{ajax_error}}"></iron-ajax>
+
+    <iron-ajax id="leader_ajax" url="{{url}}" handle-as="json" on-response="leadersFound" on-error="handleError" last-error="{{ajax_error}}"></iron-ajax>
+
+    <iron-signals on-iron-signal-user-profile="user_profile"></iron-signals>
+    <iron-signals on-iron-signal-add-student-points="add_points"></iron-signals>
+    <iron-signals on-iron-signal-open-quiz-dialog="open_quiz_dialog"></iron-signals>
   </template>
   <script>var link = {
 	use: 'https://serene-falls-49722.herokuapp.com/main.php',
@@ -27838,64 +28531,28 @@ of where they are in DOM.
         },
         projects: {
           type: Array,
-          value: [
-            {
-              name: 'Project 1',
-              status: 'Complete',
-              grade: 'B',
-              date: '14/7/2016'
-            },
-            {
-              name: 'Project 2',
-              status: 'Complete',
-              grade: 'B',
-              date: '14/7/2016'
-            },
-            {
-              name: 'Project 3',
-              status: 'Complete',
-              grade: 'B',
-              date: '14/7/2016'
-            },
-            {
-              name: 'Project 4',
-              status: 'Complete',
-              grade: 'B',
-              date: '14/7/2016'
-            }
-          ],
+          value: [],
           notify: true
         },
         quizzes: {
           type: Array,
-          value: [
-            {
-              name: 'Quiz 1',
-              status: 'Complete',
-              grade: 'B',
-              date: '14/7/2016'
-            },
-            {
-              name: 'Quiz 2',
-              status: 'Complete',
-              grade: 'B',
-              date: '14/7/2016'
-            },
-            {
-              name: 'Quiz 3',
-              status: 'Complete',
-              grade: 'B',
-              date: '14/7/2016'
-            },
-            {
-              name: 'Quiz 4',
-              status: 'Complete',
-              grade: 'B',
-              date: '14/7/2016'
-            }
-          ],
+          value: [],
           notify: true
+        },
+        selectedStudent: {
+          type: String,
+          value: null,
+          notify: true,
+          observer: 'selectedStudentChanged'
         }
+      },
+      user_profile: function(sender, detail, event) {
+        this.profile = detail;
+
+        this.student_search();
+      },
+      add_points: function() {
+        //should update points.....doesnt work....
       },
       student_search_page: function() {
         this.page = 1;
@@ -27909,6 +28566,54 @@ of where they are in DOM.
       },
       submit_quiz: function() {
         this.$.quiz_dialog.close();
+
+        var result = 0, grd = '';
+
+        if(this.ans1 == 'true')
+        {
+          result++;
+        }
+        if(this.ans2 == 'true')
+        {
+          result++;
+        }
+        if(this.ans3 == 'true')
+        {
+          result++;
+        }
+        if(this.ans4 == 'true')
+        {
+          result++;
+        }
+
+
+        if(result == 4)
+        {
+          grd = 'A';
+        }
+        else if(result == 3)
+        {
+          grd = 'B';
+        }
+        else if(result == 2)
+        {
+          grd = 'C';
+        }
+        else if(result == 1)
+        {
+          grd = 'D';
+        }
+        else
+        {
+          grd = 'F';
+        }
+
+        var send = {
+          quiz_id: this.open_quiz_id,
+          grade: grd
+        };
+
+        this.fire('iron-signal', {name: 'submit-quiz-grade', data: send});
 
         this.toastMessage = "Quiz Completed";
 
@@ -27953,6 +28658,116 @@ of where they are in DOM.
         this.$.create_project_dialog.close();
         this.$.create_quiz_dialog.close();
         this.$.point_dialog.close();
+        this.$.banner_dialog.close();
+      },
+      show_banners: function() {
+        this.$.banner_dialog.open();
+      },
+      banner_confirmed: function() {
+        this.profile.banner = this.selected_banner;
+        this.$.banner_dialog.close();
+        this.$.banner_img.src = '../../images/banners/' + this.selected_banner;
+
+        this.toastMessage = "Banner Updated";
+
+        this.$.toast.open();
+
+        //send ajax request
+        var send = {
+          action: 'set-student-banner',
+          student_id: this.profile.id,
+          banner: this.selected_banner
+        };
+
+
+        this.$.update_banner_ajax.params = send;
+        this.$.update_banner_ajax.generateRequest();
+      },
+      banner_updated: function() {
+        var res = this.$.update_banner_ajax.lastResponse;
+
+        if(res == null)
+        {
+          console.log('error updating student banner');
+          this.$.toast.close();
+          this.toastMessage = "error updating student banner";
+          this.$.toast.open();
+        }
+      },
+      student_search: function() {
+        var send = {
+          action: 'search-users',
+          name: this.search_item
+        }
+
+        this.$.loading.opened = true;
+
+        this.$.search_ajax.params = send;
+        this.$.search_ajax.generateRequest();
+      },
+      usersFound: function() {
+        var res = this.$.search_ajax.lastResponse;
+        var x = 0;
+
+        this.students = [];
+
+        for(x in res)
+        {
+          if(res[x].type == 'student')
+          {
+            this.push('students', res[x]);
+          }
+        }
+
+        this.leader_search();
+
+        this.$.loading.opened = false;
+      },
+      leader_search: function() {
+        var send = {
+          action: 'leaderboard'
+        }
+
+        this.$.loading.opened = true;
+
+        this.$.leader_ajax.params = send;
+        this.$.leader_ajax.generateRequest();
+      },
+      leadersFound: function() {
+        var res = this.$.leader_ajax.lastResponse;
+
+        this.leaderboard = res;
+
+        this.$.loading.opened = false;
+      },
+      handleError: function() {
+        this.$.loading.opened = false;
+        var res = this.ajax_error;
+
+        console.log(res);
+
+        alert(res);
+      },
+      selectedStudentChanged: function(newValue, oldValue) {
+        if(newValue == null)
+        {
+          return;
+        }
+        else
+        {
+          this.page = 4;
+          this.selectedStudent = null;
+          this.studentProfile = this.students[newValue];
+        }
+      },
+      open_quiz_dialog: function(sender, detail, event) {
+        this.open_quiz_id = detail;
+        this.$.quiz_dialog.open();
+      },
+      logout: function() {
+        this.$.logout_menu.selected = null;
+
+        this.fire('iron-signal', {name: 'logout', data: null});
       }
     });
   })();
@@ -27981,6 +28796,9 @@ of where they are in DOM.
       }
       .placeholder {
         width: 300px;
+      }
+      a {
+        color: red;
       }
     </style>
     <iron-pages selected="{{page}}" class="content">
@@ -28030,19 +28848,19 @@ of where they are in DOM.
                   <b>Notes:</b>
                   <ol>
                     <li>
-                      sda
+                      The prototype was created as a proof of concept for the fullfillment of the "The Applications of Gamification (Teriatiary Education)" Msc Thesis
                     </li>
                     <li>
-                      sda
+                      All non-essential components that do not demonstrate the concepts of gamification or support the thesis have been disabled.
                     </li>
                     <li>
-                      sda
+                      If you are viewing the page you have likely been requested to participate in an academic survey. Please see the link to the survey <a href="https://docs.google.com/forms/d/116z8Gl5U6J0hsjKkV4RtYhjmFTkbLzYdA9kcXPR0clM/edit?usp=sharing">here</a>.
                     </li>
                     <li>
-                      sda
+                      If you are interested in how or why the prototype was created you may view an informal set of specifications <a href="https://docs.google.com/document/d/17ITrttrhokMRQWW4A_P6zLJbRybNWTh4Mz8Td_kCD7M/edit?usp=sharing">here</a>.
                     </li>
                     <li>
-                      sda
+                      If you have recieved no instructions on how to participate in the study, please see the demo video <a href="">here</a> and a set of test credentials <a href="http://imgur.com/a/8MCae">here</a>.
                     </li>
                   </ol>               
                 </div>
